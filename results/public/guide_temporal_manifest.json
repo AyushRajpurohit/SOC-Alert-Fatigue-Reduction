@@ -1,0 +1,58 @@
+{
+  "protocol": "completed_incident_global_chronological_60_20_20_by_default",
+  "created_utc": "2026-11-01T06:42:36.734279+00:00",
+  "input_cache": "data/processed/guide_incidents.pkl",
+  "source_incidents": 730778,
+  "eligible_graded_valid_incidents": 707108,
+  "excluded_boundary_crossing_incidents": 3804,
+  "train_end_exclusive": "2024-06-11T01:59:35+00:00",
+  "calibration_end_exclusive": "2024-06-13T07:45:06+00:00",
+  "splits": {
+    "train": {
+      "incidents": 424264,
+      "orgs": 4494,
+      "tp_rate": 0.21849131672732072,
+      "earliest_start": "2023-11-20T16:32:22+00:00",
+      "latest_end": "2024-06-11T01:59:33+00:00"
+    },
+    "calibration": {
+      "incidents": 139344,
+      "orgs": 3239,
+      "tp_rate": 0.1897964749110116,
+      "earliest_start": "2024-06-11T01:59:35+00:00",
+      "latest_end": "2024-06-13T07:45:05+00:00"
+    },
+    "test": {
+      "incidents": 139696,
+      "orgs": 2971,
+      "tp_rate": 0.18235310960943762,
+      "earliest_start": "2024-06-13T07:45:07+00:00",
+      "latest_end": "2024-06-17T14:45:38+00:00"
+    }
+  },
+  "hyperparameters": {
+    "train_frac": 0.6,
+    "cal_frac": 0.2,
+    "min_df": 20,
+    "C": 0.1,
+    "seed": 42,
+    "recall_targets": [
+      0.99,
+      0.95
+    ]
+  },
+  "feature_dimensions": {
+    "techniques": 159,
+    "categories": 17,
+    "numeric": 3
+  },
+  "caveats": [
+    "GUIDE incident-level analyst grades; not alert-level safety recall.",
+    "Complete incident features are available only after its last observed alert.",
+    "GUIDE timestamps are privacy-noised; chronological drift is a proxy.",
+    "No organisation-disjoint holdout: this is temporal evaluation, not zero-shot portability.",
+    "Score is logistic output, not independently probability-calibrated.",
+    "Calibration threshold meeting a target does not guarantee test recall.",
+    "No adaptive model or drift detector is used in this baseline."
+  ]
+}

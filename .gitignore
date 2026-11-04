@@ -1,0 +1,59 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*secret*
+*credential*
+
+# Datasets
+data/raw/
+data/processed/
+data/lab/
+data/scenarios/*.jsonl
+*.parquet
+*.pkl
+*.pickle
+
+# Generated event-level dashboard data
+**/dashboard/state/
+**/state.json
+**/queue.json
+**/incident_views.jsonl
+
+# Trained models and prediction files
+*.joblib
+**/model.json
+**/model_hard.json
+**/test_predictions.csv
+**/calibration_predictions.csv
+**/test_comparison.csv
+
+# Logs and archives
+*.log
+*.zip
+*.tar
+*.tar.gz
+
+# Only explicitly approved public results
+results/*
+!results/README.md
+!results/public/
+!results/public/**

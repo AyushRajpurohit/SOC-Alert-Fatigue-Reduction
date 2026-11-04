@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOC alert-fatigue prototype</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1c2330; --muted: #667085; --line: #e4e7ec;
+    --esc: #c0392b; --esc-bg: #fdecea; --inv: #b7791f; --inv-bg: #fff4dc; --ok: #2f855a; --bar: #3b82f6; --pill: #eef2f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161d; --card: #1a202b; --text: #e6e9ef; --muted: #98a2b3; --line: #2b3342;
+      --esc: #ff7b6b; --esc-bg: #3a1f1c; --inv: #f0b95a; --inv-bg: #38301a; --ok: #6fd3a0; --bar: #60a5fa; --pill: #262e3d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--card); }
+  h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  .status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.live { background: var(--ok); }
+  main { padding: 18px 22px; max-width: 1280px; margin: 0 auto; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .kpi .v { font-size: 28px; font-weight: 650; letter-spacing: -0.5px; }
+  .kpi .l { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .kpi.red .v { color: var(--esc); } .kpi.amber .v { color: var(--inv); } .kpi.green .v { color: var(--ok); }
+  .row { display: grid; grid-template-columns: 1fr 320px; gap: 14px; align-items: start; }
+  @media (max-width: 980px) { .row { grid-template-columns: 1fr; } }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .badge { font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 99px; display: inline-block; }
+  .badge.ESCALATE { color: var(--esc); background: var(--esc-bg); }
+  .badge.INVESTIGATE { color: var(--inv); background: var(--inv-bg); }
+  .pill { display: inline-block; background: var(--pill); border-radius: 6px; padding: 1px 7px; font-size: 12px; margin: 1px 0; }
+  .arrow { color: var(--muted); margin: 0 3px; }
+  .bar { height: 6px; background: var(--pill); border-radius: 4px; overflow: hidden; width: 120px; margin: 4px 0 2px; }
+  .bar > span { display: block; height: 100%; background: var(--bar); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .reason { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .empty { color: var(--muted); padding: 24px 8px; text-align: center; }
+  .toolbar { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+  ul { list-style: none; padding: 0; margin: 0; } li { padding: 5px 0; border-bottom: 1px solid var(--line); } li:last-child { border: 0; }
+  code { font-size: 12px; background: var(--pill); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SOC alert-fatigue prototype &mdash; analyst queue</h1>
+  <div class="status"><span id="dot" class="dot"></span><span id="status">waiting for engine&hellip;</span></div>
+</header>
+<main>
+  <section class="kpis">
+    <div class="card kpi"><div class="v" id="k-alerts">0</div><div class="l">raw alerts seen</div></div>
+    <div class="card kpi red"><div class="v" id="k-esc">0</div><div class="l">escalate</div></div>
+    <div class="card kpi amber"><div class="v" id="k-inv">0</div><div class="l">investigate</div></div>
+    <div class="card kpi"><div class="v" id="k-dem">0</div><div class="l">incidents demoted to digest</div></div>
+    <div class="card kpi green"><div class="v" id="k-red">0%</div><div class="l">fewer items than raw alerts</div></div>
+  </section>
+
+  <section class="row">
+    <div class="card">
+      <h2>Surfaced incidents</h2>
+      <div class="toolbar"><label><input type="checkbox" id="only-esc"> escalate only</label><span id="shown" class="muted"></span></div>
+      <table>
+        <thead><tr><th>Decision</th><th>Entity</th><th>Attack steps seen</th><th>Known-attack match</th><th>Alerts</th><th>Last seen</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="empty" class="empty">No surfaced incidents yet.</div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>Digest (demoted, not deleted)</h2>
+        <div class="muted" id="digest-sum"></div>
+        <ul id="digest"></ul>
+      </div>
+      <div class="card">
+        <h2>Known attack patterns</h2>
+        <ul id="patterns"></ul>
+        <div class="muted" id="cfg" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const hhmmss = (iso) => (iso || "").slice(11, 19);
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = String(text);   // textContent only: alert text is never parsed as HTML
+  return e;
+}
+
+function chain(tokens) {
+  const box = el("div");
+  if (!tokens.length) { box.appendChild(el("span", "muted", "no tactic yet")); return box; }
+  tokens.forEach((t, i) => {
+    if (i) box.appendChild(el("span", "arrow", "\u2192"));
+    box.appendChild(el("span", "pill", t));
+  });
+  return box;
+}
+
+function render(d) {
+  const s = d.stats;
+  $("k-alerts").textContent = s.alerts_seen;
+  $("k-esc").textContent = s.escalate;
+  $("k-inv").textContent = s.investigate;
+  $("k-dem").textContent = s.demoted;
+  $("k-red").textContent = (s.reduction * 100).toFixed(1) + "%";
+
+  const onlyEsc = $("only-esc").checked;
+  const list = d.surfaced.filter((i) => !onlyEsc || i.decision === "ESCALATE");
+  const tbody = $("rows");
+  tbody.replaceChildren();
+  list.forEach((i) => {
+    const tr = el("tr");
+    const c1 = el("td"); c1.appendChild(el("span", "badge " + i.decision, i.decision));
+    c1.appendChild(el("div", "muted", "score " + i.priority.toFixed(3)));
+    const c2 = el("td", "", i.entity);
+    c2.appendChild(el("div", "muted", "#" + i.id));
+    const c3 = el("td"); c3.appendChild(chain(i.tokens));
+    c3.appendChild(el("div", "reason", i.reasons.join(" \u00b7 ")));
+    const c4 = el("td");
+    const bar = el("div", "bar"); const fill = el("span"); fill.style.width = Math.round(i.best.coverage * 100) + "%";
+    bar.appendChild(fill); c4.appendChild(bar);
+    c4.appendChild(el("div", "muted", i.best.name === "-" ? "no known pattern" :
+      i.best.name + ": " + Math.round(i.best.coverage * 100) + "% seen, " + Math.round(i.best.match * 100) + "% fits"));
+    const c5 = el("td", "", i.n_alerts);
+    c5.appendChild(el("div", "muted", Object.entries(i.rules).slice(0, 3).map(([r, n]) => r + "\u00d7" + n).join("  ")));
+    const c6 = el("td", "", hhmmss(i.last_ts));
+    c6.appendChild(el("div", "muted", i.closed ? "closed" : "open"));
+    [c1, c2, c3, c4, c5, c6].forEach((c) => tr.appendChild(c));
+    tbody.appendChild(tr);
+  });
+  $("empty").style.display = list.length ? "none" : "block";
+  $("shown").textContent = list.length + " shown";
+
+  $("digest-sum").textContent = d.digest.incidents + " incidents, " + s.demoted_alerts + " alerts folded away";
+  const dg = $("digest"); dg.replaceChildren();
+  d.digest.top_rules.forEach((r) => {
+    const li = el("li"); li.appendChild(el("code", "", r.rule));
+    li.appendChild(el("span", "", " \u00d7" + r.count + "  " + (r.description || "").slice(0, 46)));
+    dg.appendChild(li);
+  });
+
+  const pl = $("patterns"); pl.replaceChildren();
+  d.patterns.forEach((p) => {
+    const li = el("li"); li.appendChild(el("div", "", p.name)); li.appendChild(chain(p.tokens)); pl.appendChild(li);
+  });
+  const c = d.cfg;
+  $("cfg").textContent = "scorer: " + (d.scorer || "rules") + " \u00b7 gap " + c.gap + "s \u00b7 escalate \u2265 " + c.escalate +
+    " \u00b7 investigate \u2265 " + c.investigate;
+}
+
+function setStatus(ok, msg) {
+  $("dot").className = "dot" + (ok ? " live" : "");
+  $("status").textContent = msg;
+}
+
+async function tick() {
+  try {
+    const r = await fetch("state/queue.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    render(await r.json());
+    setStatus(true, "live \u00b7 updated " + new Date().toLocaleTimeString());
+  } catch (e) {
+    setStatus(false, "no state file yet \u2014 start the engine (and serve this folder over http)");
+  }
+}
+$("only-esc").addEventListener("change", tick);
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>

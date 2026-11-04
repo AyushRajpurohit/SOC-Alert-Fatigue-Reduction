@@ -1,0 +1,53 @@
+{
+  "test_roc_auc": 0.7140905287493962,
+  "test_average_precision": 0.33871611194015966,
+  "test_within_org_auc": 0.5474353481014179,
+  "test_within_org_count": 201,
+  "test_tp_rate": 0.18235310960943762,
+  "target_0.9900": {
+    "threshold": 0.06189754834998511,
+    "calibration": {
+      "recall": 0.991568041743865,
+      "incidents_demoted": 4651,
+      "incidents_total": 139344,
+      "incident_demotion_rate": 0.033377827534734186,
+      "alerts_demoted": 8200,
+      "alerts_total": 190030,
+      "alert_demotion_rate": 0.043151081408198705,
+      "tp_incidents_demoted": 223
+    },
+    "test": {
+      "recall": 0.9952500588835675,
+      "incidents_demoted": 4448,
+      "incidents_total": 139696,
+      "incident_demotion_rate": 0.03184056809071126,
+      "alerts_demoted": 7193,
+      "alerts_total": 184464,
+      "alert_demotion_rate": 0.038994058461271575,
+      "tp_incidents_demoted": 121
+    }
+  },
+  "target_0.9500": {
+    "threshold": 0.07375957555821415,
+    "calibration": {
+      "recall": 0.9552690286232843,
+      "incidents_demoted": 22586,
+      "incidents_total": 139344,
+      "incident_demotion_rate": 0.1620880698128373,
+      "alerts_demoted": 27452,
+      "alerts_total": 190030,
+      "alert_demotion_rate": 0.14446140083144768,
+      "tp_incidents_demoted": 1183
+    },
+    "test": {
+      "recall": 0.9598021512130015,
+      "incidents_demoted": 20497,
+      "incidents_total": 139696,
+      "incident_demotion_rate": 0.1467257473370748,
+      "alerts_demoted": 24205,
+      "alerts_total": 184464,
+      "alert_demotion_rate": 0.1312180154393269,
+      "tp_incidents_demoted": 1024
+    }
+  }
+}
