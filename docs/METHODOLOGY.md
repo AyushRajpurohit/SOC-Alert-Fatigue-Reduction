@@ -1,110 +1,41 @@
 # Methodology
 
-## 1. Research Objective
+## What we studied
 
-The project studies two complementary SOC alert-fatigue problems:
+We investigated two parts of the alert fatigue problem. The GUIDE experiments ask whether completed security incidents can be ranked for review. The Wazuh experiments ask whether a smaller set of alerts can represent the evidence our system is designed to preserve. The results come from separate evaluations.
 
-1. Retrospective prioritization of analyst-graded security incidents.
-2. Reduction of default-visible alerts while preserving explicitly defined evidence constraints.
+## GUIDE ranking model
 
-The two evaluations use different datasets and must not be interpreted as one end-to-end experiment.
+We processed the public GUIDE data into incident records and removed cases without the information needed for evaluation. We split eligible incidents by time. The training set contains 424,264 incidents, the calibration set has 139,344 and the later test set has 139,696. Incidents spanning the split boundaries were excluded.
 
-## 2. GUIDE Incident Prioritization
+Our baseline is logistic regression. It uses binary MITRE technique and detection category indicators together with three numeric features: log alert count, presence of at least one technique and log technique count. We learned feature vocabulary from the training data only.
 
-The Microsoft GUIDE data was converted from evidence-level records into completed-incident features.
+The model ranks completed incidents by its logistic score. We selected thresholds on calibration incidents to target 99% and 95% recall of incidents graded TruePositive. We then applied those fixed thresholds to the test data. The scores are not independently calibrated probabilities.
 
-A global chronological train/calibration/test protocol was used:
+## Wazuh correlation
 
-| Split | Incidents |
-|---|---:|
-| Training | 424,264 |
-| Calibration | 139,344 |
-| Test | 139,696 |
+We processed three short samples of approved and locally sanitized Wazuh alerts. The correlation engine uses time and observed entity relationships to reconstruct groups. It does not invent missing host, user or source values. These groups are working investigation units, not verified attack incidents.
 
-The baseline uses a logistic model trained on incident-level features, including MITRE technique and category information.
+## Evidence requirements and selection
 
-Calibration thresholds were selected for target true-positive recall levels of 99% and 95%.
+For each group, the reducer builds requirements from MITRE techniques, observed hosts, host IP fallbacks, unmapped host and rule combinations and observed correlation links.
 
-The test ROC-AUC was 0.7141, with average precision 0.3387.
+The first and last alert in each group are mandatory. So is every alert at or above the configured critical severity threshold. In the original experiment this threshold was 12.
 
-The evaluation uses completed incidents and privacy-adjusted timestamps. It does not establish real-time classification performance.
+An unmapped rule contributes a requirement but is not automatically mandatory on its own. For a link with uniquely identified endpoints, either endpoint can cover its requirement. When a link cannot be resolved safely, all alerts in the group are retained.
 
-## 3. Entity-Aware Correlation
+Greedy selection starts with the mandatory alerts and then adds whichever alert covers the largest number of remaining requirements. Ties favor higher severity and then earlier alert order. It stops when all defined requirements are represented. The remaining alerts are still available as supporting information.
 
-Wazuh alerts are grouped using observed temporal and entity relationships, rather than host identity alone.
+## Comparison methods
 
-The correlation engine conservatively uses observed host, source, and user relationships. Missing entity information is not fabricated.
+We compared six approaches: showing all alerts, severity based selection at a matched visibility budget, rule deduplication, one representative per MITRE technique, first cover and greedy cover.
 
-Reconstructed groups are evaluation units, not independently verified ground-truth incidents.
+Greedy selection used the frozen policy with critical severity 12, mandatory anchors and conservative link and unmapped rule handling. We compared methods using alert visibility, defined requirement coverage and severity retention.
 
-## 4. Evidence-Constrained Reduction
+## Additional experiments
 
-Each reconstructed group contains a set of evidence requirements derived from its observed structured fields.
+We also ran GUIDE drift diagnostics, read only shift monitoring, controlled distribution changes, guarded shadow update tests and walk forward checks. The shadow candidate failed the promotion gate and was not deployed. A separate next rule prediction pilot was tested but did not improve alert selection compared with greedy cover.
 
-The greedy algorithm selects representative alerts that cover uncovered requirements.
+## What the measurements mean
 
-Requirements include selected combinations of:
-- Incident anchors and protected events
-- Observed MITRE techniques
-- Unknown or unmapped rule representation
-- Observed correlation-link endpoints
-
-The original alerts remain available as supporting evidence.
-
-The method is a heuristic for a set-cover-style objective. Its coverage guarantees apply to the programmed requirements, not to all possible security-relevant information.
-
-## 5. Six-Method Comparison
-
-The institutional Wazuh evaluation compares:
-
-- All alerts
-- Severity-based matched-budget selection
-- Rule deduplication
-- One representative per technique
-- First-cover selection
-- Greedy-cover selection
-
-The three fixed evaluation samples contain 535, 605, and 640 alerts.
-
-The original benchmark uses critical level 12.
-
-Greedy-cover selected 1,186 of 1,780 alerts for the default view, giving 33.37% reduction and 2,392/2,392 programmed requirement coverage.
-
-Severity-based selection at the same visibility budget covered 1,843/2,392 requirements.
-
-However, greedy-cover retained only 10/20 alerts with severity >=10; the severity comparator retained 20/20. This is an important trade-off.
-
-## 6. Drift and Update Evaluation
-
-Additional GUIDE experiments include:
-
-- Temporal drift diagnostics
-- Score-distribution monitoring
-- MITRE-distribution monitoring
-- Controlled drift replay
-- Shadow-model training and promotion gates
-- Rollback simulation
-- Walk-forward evaluation
-
-The reported shadow candidate did not pass the promotion gate. The active static baseline was therefore retained in the simulation.
-
-These experiments were offline and did not deploy adaptive models into an operational SOC.
-
-## 7. Learned-Novelty Pilot
-
-An experimental logistic model was trained to predict Wazuh rule IDs from preceding context.
-
-Prediction surprise was used as a candidate alert-selection signal.
-
-On the exploratory Sample C evaluation, learned novelty achieved 73.75% next-rule prediction accuracy but reduced fewer default-visible alerts than the existing greedy method.
-
-Prediction accuracy is not security-detection accuracy, and this result does not establish that novelty identifies safe-to-hide alerts.
-
-## 8. Limitations
-
-- Institutional Wazuh samples have no independently verified incident labels.
-- Evidence coverage is measured against algorithm-defined requirements.
-- No actual analyst-time reduction has been measured.
-- No production deployment has been performed.
-- Institutional evaluation covers one deployment and three short collection windows.
-- GUIDE incident features are available only after the incident completes.
+GUIDE recall describes how many graded TruePositive incidents stayed above the demotion threshold. Wazuh coverage describes how many requirements defined by our program remain represented. Neither value guarantees that every attack was detected. We did not measure analyst time savings or deploy automatic suppression in a live SOC.

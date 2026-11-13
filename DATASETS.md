@@ -2,52 +2,28 @@
 
 ## Microsoft GUIDE
 
-Public dataset: Microsoft Security Incident Prediction
+We used the public Microsoft Security Incident Prediction data:
 https://www.kaggle.com/competitions/microsoft-security-incident-prediction
 
-The project uses the publicly available GUIDE training data.
+The original data contains evidence records linked to alerts and incidents. We generated an incident level cache before running chronological experiments. The source contained 730,778 incidents. Of these, 707,108 passed the grade and data checks. The evaluated split contains 424,264 training incidents, 139,344 calibration incidents and 139,696 test incidents. Another 3,804 incidents were left out because they crossed time boundaries.
 
-The original evidence-level records are processed into an
-incident-level cache before chronological evaluation.
+The original GUIDE records, processed cache, model file and prediction exports are not uploaded here. Reviewed aggregate metrics and the split manifest are included under `results/public/`.
 
-Chronological evaluation:
-- Source incidents: 730,778
-- Eligible graded incidents: 707,108
-- Training: 424,264
-- Calibration: 139,344
-- Testing: 139,696
-- Boundary-crossing incidents excluded: 3,804
+## Institute Wazuh
 
-The original dataset files and derived incident-level
-prediction exports are not included in this repository.
+We evaluated three authorized two minute windows of institute Wazuh data after local sanitization.
 
-## Institutional Wazuh
+| Sample | Alerts |
+|---|---:|
+| A | 535 |
+| B | 605 |
+| C | 640 |
+| Total | 1,780 |
 
-The institutional evaluation used 1,780 actual Wazuh alerts
-from three fixed two-minute windows.
+These records have no independently checked malicious or benign labels. Even locally sanitized event data may be sensitive, so raw records, sanitized event records, identifying details, private models and dashboard state files are excluded.
 
-- Sample A: 535 alerts
-- Sample B: 605 alerts
-- Sample C: 640 alerts
+The 33.37% result counts alerts omitted from the initial view. It is not a measurement of analyst hours saved.
 
-The records were locally pseudonymized before evaluation.
+## Lab and synthetic fixtures
 
-Raw records, pseudonymized event-level records, identifiers,
-pseudonymization keys, and generated event-level dashboard
-states are not distributed.
-
-The institutional records have no independently verified
-malicious/benign labels.
-
-The reported 33.37% reduction refers to default-visible
-alert records, not measured analyst time or false positives.
-
-## Controlled Laboratory and Synthetic Data
-
-Controlled attack-chain recordings were used to develop and
-test correlation and evidence-reduction behavior.
-
-Synthetic fixtures were used for regression tests.
-
-Synthetic results must not be interpreted as real-world
-attack-detection performance.
+We used controlled lab observations to understand Wazuh rules and attack chain behavior. Unit tests use synthetic fixtures. Synthetic test outcomes should not be presented as production detection results.

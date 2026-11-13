@@ -1,91 +1,82 @@
 # SOC Alert Fatigue Reduction
 
-A research prototype for reducing default-visible SOC security alerts while preserving explicitly defined investigation evidence.
+This project looks at ways to make security alerts easier to review. We studied incident ranking with the public Microsoft GUIDE dataset and alert selection with Wazuh records. The two parts were tested separately.
 
-## 1. Project Overview
+Our main Wazuh result is a **33.37% reduction in alerts shown in the initial view** while covering every evidence requirement defined by our reducer. This does not mean that 33.37% of analyst work was saved or that every real attack was detected.
 
-The project investigates two complementary approaches:
+## What we built
 
-1. Incident prioritization using the Microsoft GUIDE dataset.
-2. Evidence-preserving alert reduction using Wazuh security alerts.
+- A logistic regression baseline for ranking completed GUIDE incidents
+- GUIDE experiments for drift monitoring, controlled changes, shadow updates and walk forward testing
+- A Wazuh correlation engine that groups alerts using observed time and entity information
+- A greedy reducer that chooses representative alerts while keeping required evidence visible
+- A six method comparison on three short, authorized institute Wazuh samples
+- A local dashboard where analysts can expand supporting alerts
+- Tests and an exploratory next rule prediction model
 
-The implementation includes correlation, alert reduction, incident ranking, drift diagnostics, safe model-update simulations, and an interactive investigation dashboard.
+## GUIDE results
 
-## 2. Project Structure
+We trained on 424,264 earlier incidents, selected score thresholds with 139,344 calibration incidents and tested on 139,696 later incidents.
 
-- `src/guide/` — GUIDE data processing, temporal evaluation, drift detection, and model updates.
-- `src/lab/` — Laboratory alert processing and attack-pattern mining.
-- `src/prototype/` — Entity-aware correlation, evidence reduction, scoring, and dashboard.
-- `demo/` — Demonstration materials.
-- `docs/` — Technical documentation.
-- `results/public/` — Reviewed aggregate evaluation outputs.
-
-## 3. Microsoft GUIDE Evaluation
-
-A chronological completed-incident evaluation was conducted on 139,696 test incidents.
-
-| Metric | Result |
+| Measure | Test result |
 |---|---:|
 | ROC-AUC | 0.7141 |
 | Average precision | 0.3387 |
-| Recall at 99% target | 99.525% |
+| Actual recall at 99% target | 99.525% |
 | Incident demotion at 99% target | 3.184% |
-| Recall at 95% target | 95.980% |
+| Actual recall at 95% target | 95.980% |
 | Incident demotion at 95% target | 14.673% |
 
-These results evaluate retrospective incident prioritization, not live security detection.
+These results describe retrospective ranking of completed incidents. They are not measurements of live SOC detection.
 
-## 4. Institutional Wazuh Evaluation
+## Wazuh results
 
-The evidence-reduction algorithm was evaluated on 1,780 locally pseudonymized institutional Wazuh alerts.
+Three two minute windows contained 1,780 alerts. Our correlation engine reconstructed 573 groups and recorded 1,207 links. The groups and links are not independently verified attack chains.
 
-| Method | Visible alerts | View reduction | Defined evidence coverage |
+| Selection method | Initially visible alerts | Reduction | Defined evidence coverage |
 |---|---:|---:|---:|
-| All alerts | 1,780 | 0% | 100% |
-| Severity-matched | 1,186 | 33.37% | 77.05% |
-| Greedy-cover | 1,186 | 33.37% | 100% |
+| Show everything | 1,780 | 0% | 100% |
+| Severity selection at a matched budget | 1,186 | 33.37% | 77.05% |
+| Greedy evidence selection | 1,186 | 33.37% | 100% |
 
-Greedy-cover preserved 2,392 out of 2,392 explicitly defined evidence requirements.
+Greedy selection kept 1,186 alerts in the initial view and retained 594 as supporting alerts. It covered all 2,392 requirements created by the program. With the original severity threshold of 12, only 10 of 20 alerts at severity 10 or higher remained initially visible. This is a limitation of the frozen setup.
 
-Under the original critical-level-12 policy, it retained only 10 of 20 alerts with severity level 10 or higher.
+The separate Sample B dashboard uses a severity threshold of 10. It shows 391 of 605 alerts and has a 35.37% initial view reduction. The dashboard result and the three sample benchmark use different settings.
 
-The reduction measures default-visible alerts, not analyst time saved or validated false-positive suppression.
+## Repository layout
 
-## 5. Main Implemented Components
+- `src/guide/` contains the GUIDE model and drift experiments.
+- `src/lab/` contains laboratory alert processing tools.
+- `src/prototype/` contains correlation, reduction, evaluation, the dashboard and tests.
+- `docs/` explains the approach, results and limitations.
+- `results/public/` contains reviewed GUIDE aggregate outputs.
+- `demo/demo_run.sh` is the laboratory demo script.
 
-- Entity-aware Wazuh alert correlation.
-- Evidence-constrained greedy alert selection.
-- Six-method comparative evaluation.
-- Retrospective incident-prioritization model.
-- Temporal drift diagnostics and monitoring.
-- Shadow-update and rollback simulations.
-- Walk-forward evaluation.
-- Integrated investigation dashboard.
-- Experimental learned alert-novelty model.
+## Running the tests
 
-## 6. Running Tests
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m unittest discover -s src/prototype -p 'test_*.py' -v
+```
 
-Install dependencies:
+The last verified run completed 40 tests with 38 passing and two skipped because optional archives were not available.
 
-    pip install -r requirements.txt
+## Documentation
 
-Run the prototype tests:
+- [Datasets](DATASETS.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Methodology](docs/METHODOLOGY.md)
+- [Results](docs/RESULTS.md)
+- [Reproducibility](docs/REPRODUCIBILITY.md)
+- [Limitations](docs/LIMITATIONS.md)
+- [Work planned after the semester](docs/FUTURE_WORK.md)
 
-    python -m unittest discover -s src/prototype -p 'test_*.py' -v
+## Data access and privacy
 
-Some tests require optional laboratory archives and are skipped when those archives are unavailable.
+Raw Wazuh records, locally sanitized event records, private models and event level dashboard states are not part of this repository. The institute evaluation cannot be reproduced without approved access to the original samples. See [Datasets](DATASETS.md).
 
-## 7. Research Limitations
+## Project status
 
-- No live production SOC deployment.
-- No measured analyst-time savings.
-- Institutional Wazuh records do not have independent malicious/benign labels.
-- Programmed evidence coverage has not been independently validated by SOC analysts.
-- GUIDE experiments use completed-incident features.
-- Learned-novelty selection did not improve upon the greedy baseline in the exploratory pilot.
-
-## 8. Datasets and Privacy
-
-See `DATASETS.md` for dataset descriptions and acquisition information.
-
-Raw institutional Wazuh records, pseudonymized event-level data, sensitive identifiers, and generated event-level dashboard states are not included.
+This repository documents the semester implementation and its verified experiments. More research is planned after the semester, particularly stronger baselines, better safety requirements and evaluation with independent ground truth. None of that planned work is reported as completed here.

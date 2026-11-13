@@ -1,71 +1,45 @@
 # Reproducibility
 
-## 1. Environment
+## Set up the environment
 
-Use Python 3 with dependencies installed from the repository requirements file.
+Use a supported Python 3 environment and install the repository dependencies:
 
-    python -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-## 2. Unit Tests
+## Run the tests
 
-Run the correlation, reducer, integration, and evaluation tests:
+```bash
+python -m unittest discover -s src/prototype -p 'test_*.py' -v
+```
 
-    python -m unittest discover -s src/prototype -p 'test_*.py' -v
+Our last verified run completed 40 tests with 38 passing and two skipped because optional laboratory archives were absent.
 
-Some tests requiring optional archives will be skipped when those archives are unavailable.
+## GUIDE
 
-## 3. GUIDE Dataset
+Get the public Microsoft Security Incident Prediction dataset from the link in `DATASETS.md`. The processing and evaluation scripts are in `src/guide/`.
 
-Obtain the public Microsoft GUIDE dataset using the source information in `DATASETS.md`.
+The repository includes the reviewed aggregate metrics and split manifest in `results/public/`. It does not include the large source data, incident cache, model artifact or prediction files. Reproducing the full experiment needs the original data and sufficient local resources.
 
-The original data and generated incident cache are intentionally excluded from this repository.
+## Wazuh
 
-The main pipeline is implemented under `src/guide/`.
+Relevant files include `correlation_engine.py`, `evidence_reducer.py`, `reducer_six_method_eval.py` and `reducer_institute_six_method.py` in `src/prototype/`.
 
-Published aggregate results:
+The institute benchmark uses three authorized local sample files and writes aggregate comparisons to a new output directory. Those sample files cannot be published here. The exact benchmark therefore requires approved access to the private data. The public tests use synthetic fixtures to check the algorithm's behavior.
 
-- `results/public/guide_temporal_manifest.json`
-- `results/public/guide_temporal_metrics.json`
+## Dashboard replay
 
-The manifest documents the chronological split and model settings.
+`src/prototype/integrated_replay.py` produces a local HTML dashboard and a state file. Read the command line help for its current arguments:
 
-Regenerating the results requires the original GUIDE data and sufficient local compute/storage.
+```bash
+python src/prototype/integrated_replay.py --help
+```
 
-## 4. Wazuh Evidence Reduction
+Do not upload a dashboard state file made from institutional alerts. Use synthetic or explicitly approved inputs for a distributable demonstration.
 
-The algorithm and evaluator are implemented in:
+## Interpreting the output
 
-- `src/prototype/correlation_engine.py`
-- `src/prototype/evidence_reducer.py`
-- `src/prototype/reducer_six_method_eval.py`
-- `src/prototype/reducer_institute_six_method.py`
-
-The institutional samples are not publicly distributed.
-
-The exact institutional benchmark cannot be independently rerun without approved access to those samples.
-
-The public unit tests exercise correlation, evidence preservation, and evaluation logic using generated fixtures.
-
-## 5. Integrated Replay
-
-The retrospective integrated replay is implemented in:
-
-    src/prototype/integrated_replay.py
-
-For available options:
-
-    python src/prototype/integrated_replay.py --help
-
-The original institutional dashboard state is not distributed.
-
-For a local demonstration, use explicitly synthetic or otherwise approved alert files.
-
-## 6. Evaluation Interpretation
-
-- GUIDE recall measures retention of analyst-graded true-positive incidents.
-- Wazuh reduction measures default-visible alert records.
-- Wazuh coverage measures preservation of programmed evidence requirements.
-- Neither experiment demonstrates measured analyst-time savings.
-- Institutional results are not proof of correct malicious-incident detection.
+GUIDE recall concerns graded TruePositive incidents. Wazuh reduction concerns the number of alerts initially displayed. Wazuh evidence coverage concerns only the requirements defined in the reducer. None of these are measured analyst time savings or proof of production attack detection.
